@@ -90,6 +90,7 @@
     "@comunica/actor-rdf-resolve-quad-pattern-file": "^1.1.0",
     "@comunica/actor-rdf-resolve-quad-pattern-qpf": "^1.1.0",
     "@comunica/actor-rdf-resolve-quad-pattern-sparql-json": "^1.1.0",
+    "@comunica/actor-rdf-resolve-quad-pattern-follow-subject": "^1.0.0",
     "@comunica/actor-rdf-serialize-jsonld": "^1.1.0",
     "@comunica/actor-rdf-serialize-n3": "^1.1.0",
     "@comunica/actor-rdf-source-identifier-file-content-type": "^1.1.0",

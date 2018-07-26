@@ -1,0 +1,12 @@
+{
+  "@context": [
+    "https://linkedsoftwaredependencies.org/bundles/npm/componentsjs/^3.0.0/components/context.jsonld",
+    {
+      "npmd": "https://linkedsoftwaredependencies.org/bundles/npm/",
+      "carrqpfs": "npmd:@comunica/actor-rdf-resolve-quad-pattern-follow-subject/",
+      "files-carrqpfs": "carrqpfs:^1.0.0/",
+
+      "ActorRdfResolveQuadPatternFollowSubject": "carrqpfs:Actor/RdfResolveQuadPattern/FollowSubject"
+    }
+  ]
+}
