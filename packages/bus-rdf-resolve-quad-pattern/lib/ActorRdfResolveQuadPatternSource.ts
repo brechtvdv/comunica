@@ -30,7 +30,7 @@ export abstract class ActorRdfResolveQuadPatternSource extends ActorRdfResolveQu
   }
 
   public async run(action: IActionRdfResolveQuadPattern): Promise<IActorRdfResolveQuadPatternOutput> {
-    const source: RDF.Source = await this.getSource(action.context);
+    const source: RDF.Source = await this.getSource(action.context, action.silenceErrors);
     const output: IActorRdfResolveQuadPatternOutput = await this.getOutput(source, action.pattern, action.context);
     if (output.metadata) {
       output.metadata = ActorRdfResolveQuadPattern.cachifyMetadata(output.metadata);
@@ -70,9 +70,10 @@ export abstract class ActorRdfResolveQuadPatternSource extends ActorRdfResolveQu
   /**
    * Get a source instance for the given context.
    * @param ActionContext context Optional context data.
+   * @param {boolean} silenceErrors If errors should be silenced.
    * @return {Promise<RDF.Source>} A promise that resolves to a source.
    */
-  protected abstract getSource(context: ActionContext): Promise<ILazyQuadSource>;
+  protected abstract getSource(context: ActionContext, silenceErrors?: boolean): Promise<ILazyQuadSource>;
 
 }
 

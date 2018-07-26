@@ -30,6 +30,11 @@ export interface IActionRdfDereference extends IAction {
    * The mediatype of the source (if it can't be inferred from the source)
    */
   mediaType?: string;
+  /**
+   * If HTTP 4xx and 5xx errors should be ignored,
+   * and should be seen as empty responses.
+   */
+  silenceErrors?: boolean;
 }
 
 export interface IActorRdfDereferenceOutput extends IActorOutput {

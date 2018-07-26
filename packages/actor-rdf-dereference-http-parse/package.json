@@ -33,6 +33,7 @@
     "index.js"
   ],
   "dependencies": {
+    "asynciterator": "^2.0.0",
     "node-web-streams": "^0.2.2"
   },
   "peerDependencies": {

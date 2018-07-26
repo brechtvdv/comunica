@@ -83,6 +83,12 @@ export interface IActionRdfResolveQuadPattern extends IAction {
    * The quad pattern to resolve.
    */
   pattern: RDF.Quad;
+  /**
+   * If errors should be ignored,
+   * and should be seen as empty responses.
+   * Types of errors include things such as parsing or HTTP errors.
+   */
+  silenceErrors?: boolean;
 }
 
 export interface IActorRdfResolveQuadPatternOutput extends IActorOutput {

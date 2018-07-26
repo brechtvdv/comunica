@@ -3,6 +3,7 @@ import {ActorRdfDereference, IActionRdfDereference, IActorRdfDereferenceOutput} 
 import {IActionRdfParse, IActionRootRdfParse, IActorOutputRootRdfParse, IActorRdfParseOutput,
   IActorTestRootRdfParse} from "@comunica/bus-rdf-parse";
 import {Actor, IActorArgs, IActorTest, Mediator} from "@comunica/core";
+import {EmptyIterator} from "asynciterator";
 
 /**
  * An actor that listens on the 'rdf-dereference' bus.
@@ -51,15 +52,33 @@ export class ActorRdfDereferenceHttpParse extends ActorRdfDereference implements
 
     // Only parse if retrieval was successful
     if (httpResponse.status !== 200) {
-      throw new Error('Could not retrieve ' + action.url + ' (' + httpResponse.status + ')');
+      if (action.silenceErrors) {
+        // TODO: abstract to logger
+        process.stderr.write('Could not retrieve ' + action.url + ' (' + httpResponse.status + ')\n');
+        return { pageUrl: httpResponse.url, quads: new EmptyIterator(), triples: true };
+      } else {
+        throw new Error('Could not retrieve ' + action.url + ' (' + httpResponse.status + ')');
+      }
     }
 
     // Parse the resulting response
     const mediaType: string = ActorRdfDereferenceHttpParse.REGEX_MEDIATYPE
       .exec(httpResponse.headers.get('content-type'))[0];
     const parseAction: IActionRdfParse = { input: responseStream };
-    const parseOutput: IActorRdfParseOutput = (await this.mediatorRdfParse.mediate(
-      { context: action.context, handle: parseAction, handleMediaType: mediaType })).handle;
+    let parseActionOutput: IActorOutputRootRdfParse;
+    try {
+      parseActionOutput = (await this.mediatorRdfParse.mediate(
+        { context: action.context, handle: parseAction, handleMediaType: mediaType }));
+    } catch (e) {
+      if (action.silenceErrors) {
+        // TODO: abstract to logger
+        process.stderr.write('Could not parse ' + action.url + ' (' + httpResponse.status + '): ' + e.message + '\n');
+        return { pageUrl: httpResponse.url, quads: new EmptyIterator(), triples: true };
+      } else {
+        throw e;
+      }
+    }
+    const parseOutput: IActorRdfParseOutput = parseActionOutput.handle;
 
     // Return the parsed quad stream and whether or not only triples are supported
     return { pageUrl: httpResponse.url, quads: parseOutput.quads, triples: parseOutput.triples };
