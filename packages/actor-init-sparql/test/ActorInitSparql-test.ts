@@ -1,7 +1,8 @@
 import {ActorInit} from "@comunica/bus-init";
 import {Bindings} from "@comunica/bus-query-operation";
-import {Bus, KEY_CONTEXT_LOG} from "@comunica/core";
-import {literal, namedNode, variable} from "@rdfjs/data-model";
+import {ActionContext, Bus, KEY_CONTEXT_LOG} from "@comunica/core";
+import {LoggerPretty} from "@comunica/logger-pretty";
+import {literal, namedNode, variable} from "rdf-data-model";
 import {Factory} from "sparqlalgebrajs";
 import {PassThrough, Readable} from "stream";
 import {ActorInitSparql} from "../lib/ActorInitSparql";
@@ -21,14 +22,6 @@ describe('ActorInitSparql', () => {
   let mediatorQueryOperation;
   let mediatorSparqlParse;
   let mediatorSparqlSerialize;
-
-  const contextKeyShortcuts = {
-    initialBindings: '@comunica/actor-init-sparql:initialBindings',
-    log: '@comunica/core:log',
-    queryFormat: '@comunica/actor-init-sparql:queryFormat',
-    source: '@comunica/bus-rdf-resolve-quad-pattern:source',
-    sources: '@comunica/bus-rdf-resolve-quad-pattern:sources',
-  };
 
   beforeEach(() => {
     bus = new Bus({ name: 'bus' });
@@ -163,9 +156,8 @@ describe('ActorInitSparql', () => {
       mediatorSparqlParse.mediate = (action) => Promise.resolve({ operation: action });
       const defaultQueryInputFormat = 'sparql';
       actor = new ActorInitSparql(
-        { bus, contextKeyShortcuts, defaultQueryInputFormat, logger, mediatorContextPreprocess, mediatorQueryOperation,
-          mediatorSparqlParse, mediatorSparqlSerialize,
-          mediatorSparqlSerializeMediaTypeCombiner: mediatorSparqlSerialize, name: 'actor' });
+        { bus, defaultQueryInputFormat, logger, mediatorContextPreprocess, mediatorQueryOperation, mediatorSparqlParse,
+          mediatorSparqlSerialize, mediatorSparqlSerializeMediaTypeCombiner: mediatorSparqlSerialize, name: 'actor' });
     });
 
     it('should test', () => {
@@ -209,8 +201,8 @@ describe('ActorInitSparql', () => {
 
     it('should have a default query format', async () => {
       actor = new ActorInitSparql(
-        { bus, contextKeyShortcuts, defaultQueryInputFormat: 'sparql', logger, mediatorContextPreprocess,
-          mediatorQueryOperation, mediatorSparqlParse, mediatorSparqlSerialize,
+        { bus, defaultQueryInputFormat: 'sparql', logger, mediatorContextPreprocess, mediatorQueryOperation,
+          mediatorSparqlParse, mediatorSparqlSerialize,
           mediatorSparqlSerializeMediaTypeCombiner: mediatorSparqlSerialize, name: 'actor', queryString });
       const spy = jest.spyOn(actor, 'query');
       (await actor.run({ argv: [], env: {}, stdin: new PassThrough() }));
@@ -219,9 +211,8 @@ describe('ActorInitSparql', () => {
 
     it('should allow the query format to be changed with -i', async () => {
       actor = new ActorInitSparql(
-        { bus, contextKeyShortcuts, logger, mediatorContextPreprocess, mediatorQueryOperation, mediatorSparqlParse,
-          mediatorSparqlSerialize, mediatorSparqlSerializeMediaTypeCombiner: mediatorSparqlSerialize,
-          name: 'actor', queryString });
+        { bus, logger, mediatorContextPreprocess, mediatorQueryOperation, mediatorSparqlParse, mediatorSparqlSerialize,
+          mediatorSparqlSerializeMediaTypeCombiner: mediatorSparqlSerialize, name: 'actor', queryString });
       const spy = jest.spyOn(actor, 'query');
       (await actor.run({ argv: [ '-i', 'graphql' ], env: {}, stdin: new PassThrough() }));
       return expect(spy.mock.calls[0][1][KEY_CONTEXT_QUERYFORMAT]).toEqual('graphql');
@@ -232,7 +223,7 @@ describe('ActorInitSparql', () => {
         mediate: (arg) => Promise.resolve({ handle: { data: arg.handleMediaType } }),
       };
       actor = new ActorInitSparql(
-        { bus, contextKeyShortcuts, logger, mediatorContextPreprocess, mediatorQueryOperation, mediatorSparqlParse,
+        { bus, logger, mediatorContextPreprocess, mediatorQueryOperation, mediatorSparqlParse,
           mediatorSparqlSerialize: med, mediatorSparqlSerializeMediaTypeCombiner: med, name: 'actor', queryString });
       return expect((await actor.run({ argv: [ '-t', 'testtype' ], env: {}, stdin: new PassThrough() })).stdout)
         .toEqual('testtype');
@@ -246,7 +237,7 @@ describe('ActorInitSparql', () => {
         mediate: (arg) => Promise.resolve({ handle: { data: arg.handleMediaType } }),
       };
       actor = new ActorInitSparql(
-        { bus, contextKeyShortcuts, logger, mediatorContextPreprocess, mediatorQueryOperation: m1, mediatorSparqlParse,
+        { bus, logger, mediatorContextPreprocess, mediatorQueryOperation: m1, mediatorSparqlParse,
           mediatorSparqlSerialize: m2, mediatorSparqlSerializeMediaTypeCombiner: m2, name: 'actor', queryString });
       return expect((await actor.run({ argv: [], env: {}, stdin: new PassThrough() })).stdout)
         .toEqual('application/json');
@@ -260,7 +251,7 @@ describe('ActorInitSparql', () => {
         mediate: (arg) => Promise.resolve({ handle: { data: arg.handleMediaType } }),
       };
       actor = new ActorInitSparql(
-        { bus, contextKeyShortcuts, logger, mediatorContextPreprocess, mediatorQueryOperation: m1, mediatorSparqlParse,
+        { bus, logger, mediatorContextPreprocess, mediatorQueryOperation: m1, mediatorSparqlParse,
           mediatorSparqlSerialize: m2, mediatorSparqlSerializeMediaTypeCombiner: m2, name: 'actor', queryString });
       return expect((await actor.run({ argv: [], env: {}, stdin: new PassThrough() })).stdout)
         .toEqual('application/trig');
@@ -274,7 +265,7 @@ describe('ActorInitSparql', () => {
         mediate: (arg) => Promise.resolve({ handle: { data: arg.handleMediaType } }),
       };
       actor = new ActorInitSparql(
-        { bus, contextKeyShortcuts, logger, mediatorContextPreprocess, mediatorQueryOperation: m1, mediatorSparqlParse,
+        { bus, logger, mediatorContextPreprocess, mediatorQueryOperation: m1, mediatorSparqlParse,
           mediatorSparqlSerialize: m2, mediatorSparqlSerializeMediaTypeCombiner: m2, name: 'actor', queryString });
       return expect((await actor.run({ argv: [], env: {}, stdin: new PassThrough() })).stdout)
         .toEqual('simple');
@@ -282,9 +273,8 @@ describe('ActorInitSparql', () => {
 
     it('should run for no argv when query is passed as a parameter', () => {
       actor = new ActorInitSparql(
-        { bus, contextKeyShortcuts, logger, mediatorContextPreprocess, mediatorQueryOperation, mediatorSparqlParse,
-          mediatorSparqlSerialize, mediatorSparqlSerializeMediaTypeCombiner: mediatorSparqlSerialize,
-          name: 'actor', queryString });
+        { bus, logger, mediatorContextPreprocess, mediatorQueryOperation, mediatorSparqlParse, mediatorSparqlSerialize,
+          mediatorSparqlSerializeMediaTypeCombiner: mediatorSparqlSerialize, name: 'actor', queryString });
       return actor.run({ argv: [ ], env: {}, stdin: new PassThrough() })
         .then((result) => {
           return new Promise((resolve, reject) => {
@@ -296,9 +286,9 @@ describe('ActorInitSparql', () => {
 
     it('should run for no argv when query and context are passed as a parameter', () => {
       actor = new ActorInitSparql(
-        { bus, context, contextKeyShortcuts, logger, mediatorContextPreprocess, mediatorQueryOperation,
-          mediatorSparqlParse, mediatorSparqlSerialize,
-          mediatorSparqlSerializeMediaTypeCombiner: mediatorSparqlSerialize, name: 'actor', queryString });
+        { bus, context, logger, mediatorContextPreprocess, mediatorQueryOperation, mediatorSparqlParse,
+          mediatorSparqlSerialize, mediatorSparqlSerializeMediaTypeCombiner: mediatorSparqlSerialize,
+          name: 'actor', queryString });
       return actor.run({ argv: [ ], env: {}, stdin: new PassThrough() })
         .then((result) => {
           return new Promise((resolve, reject) => {
@@ -310,17 +300,15 @@ describe('ActorInitSparql', () => {
 
     it('should run to stderr for no argv when only a context is passed as parameter', () => {
       actor = new ActorInitSparql(
-        { bus, context, contextKeyShortcuts, logger, mediatorContextPreprocess, mediatorQueryOperation,
-          mediatorSparqlParse, mediatorSparqlSerialize,
-          mediatorSparqlSerializeMediaTypeCombiner: mediatorSparqlSerialize, name: 'actor' });
+        { bus, context, logger, mediatorContextPreprocess, mediatorQueryOperation, mediatorSparqlParse,
+          mediatorSparqlSerialize, mediatorSparqlSerializeMediaTypeCombiner: mediatorSparqlSerialize, name: 'actor' });
       return expect(actor.run({ argv: [ ], env: {}, stdin: new PassThrough() })).resolves
         .toHaveProperty('stderr');
     });
 
     it('should run to stderr for no argv when only a falsy query is passed as parameter', () => {
       actor = new ActorInitSparql(
-        { bus, contextKeyShortcuts, logger, mediatorContextPreprocess, mediatorQueryOperation, mediatorSparqlParse,
-          mediatorSparqlSerialize,
+        { bus, logger, mediatorContextPreprocess, mediatorQueryOperation, mediatorSparqlParse, mediatorSparqlSerialize,
           mediatorSparqlSerializeMediaTypeCombiner: mediatorSparqlSerialize, name: 'actor', queryString: null });
       return expect(actor.run({ argv: [ ], env: {}, stdin: new PassThrough() })).resolves
         .toHaveProperty('stderr');
@@ -452,7 +440,7 @@ describe('ActorInitSparql', () => {
         mediate: (arg) => Promise.resolve({ handle: { data: arg.handleMediaType } }),
       };
       actor = new ActorInitSparql(
-        { bus, contextKeyShortcuts, logger, mediatorContextPreprocess, mediatorQueryOperation, mediatorSparqlParse,
+        { bus, logger, mediatorContextPreprocess, mediatorQueryOperation, mediatorSparqlParse,
           mediatorSparqlSerialize: med, mediatorSparqlSerializeMediaTypeCombiner: med, name: 'actor', queryString });
       return expect((await actor.run({
         argv: [ hypermedia, queryString, '-d', dt.toISOString() ], env: {},
@@ -465,7 +453,7 @@ describe('ActorInitSparql', () => {
         mediate: (arg) => Promise.resolve({ handle: { data: arg.context.get(KEY_CONTEXT_LOG) } }),
       };
       actor = new ActorInitSparql(
-        { bus, contextKeyShortcuts, logger, mediatorContextPreprocess, mediatorQueryOperation, mediatorSparqlParse,
+        { bus, logger, mediatorContextPreprocess, mediatorQueryOperation, mediatorSparqlParse,
           mediatorSparqlSerialize: med, mediatorSparqlSerializeMediaTypeCombiner: med, name: 'actor', queryString });
       return expect((await actor.run({
         argv: [ hypermedia, queryString, '-l', 'warn' ], env: {},
