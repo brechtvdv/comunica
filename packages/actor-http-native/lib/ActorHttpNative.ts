@@ -10,6 +10,7 @@ import Requester from "./Requester";
 export class ActorHttpNative extends ActorHttp {
 
   private readonly userAgent: string;
+  private readonly timeout: number;
 
   private requester: Requester;
 
@@ -29,7 +30,7 @@ export class ActorHttpNative extends ActorHttp {
     return { time: Infinity };
   }
 
-  public async run(action: IActionHttp): Promise<IActorHttpOutput> {
+  public run(action: IActionHttp): Promise<IActorHttpOutput> {
     const options: any = {};
     // input can be a Request object or a string
     // if it is a Request object it can contain the same settings as the init object
@@ -56,6 +57,7 @@ export class ActorHttpNative extends ActorHttp {
     }
 
     options.method = options.method || 'GET';
+    options.timeout = this.timeout;
 
     this.logInfo(action.context, `Requesting ${options.url}`);
 
@@ -92,6 +94,7 @@ export class ActorHttpNative extends ActorHttp {
           }
         });
       });
+      req.on('error', reject);
     });
   }
 
@@ -101,4 +104,5 @@ export class ActorHttpNative extends ActorHttp {
 // AGENT_SETTINGS = {keepAlive: true, maxSockets: 5};
 export interface IActorHttpNativeArgs extends IActorArgs<IActionHttp, IMediatorTypeTime, IActorHttpOutput> {
   agentOptions?: string;
+  timeout: number;
 }

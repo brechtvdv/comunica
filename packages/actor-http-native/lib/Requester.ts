@@ -6,6 +6,7 @@ import {EventEmitter} from "events";
 import {AgentOptions, ClientRequest, IncomingMessage} from "http";
 import * as url from "url";
 import * as zlib from "zlib";
+import {Socket} from "net";
 
 const http = require("follow-redirects").http; // tslint:disable-line no-var-requires
 const https = require("follow-redirects").https; // tslint:disable-line no-var-requires
@@ -42,6 +43,22 @@ export default class Requester {
       // response.pause(); // exit flow mode
       requestProxy.emit('response', response);
     });
+
+    // Listen to read and connection timeouts
+    request.on('timeout', () => {
+      requestProxy.emit('error', new Error('Connection timeout on requesting ' + settings.url));
+      request.end();
+    });
+    request.on('socket', (socket: Socket) => {
+      socket.setTimeout(settings.timeout, () => {
+        requestProxy.emit('error', new Error('Socket timeout on reading ' + settings.url));
+        socket.destroy();
+      });
+      request.on('error', (e) => {
+        requestProxy.emit('error', e);
+      });
+    });
+
     request.end();
     return requestProxy;
   }

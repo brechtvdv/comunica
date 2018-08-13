@@ -43,7 +43,18 @@ export class ActorRdfDereferenceHttpParse extends ActorRdfDereference implements
     const headers: Headers = new Headers();
     headers.append('Accept', acceptHeader);
     const httpAction: IActionHttp = { context: action.context, input: action.url, init: { headers } };
-    const httpResponse: IActorHttpOutput = await this.mediatorHttp.mediate(httpAction);
+    let httpResponse: IActorHttpOutput;
+    try {
+      httpResponse = await this.mediatorHttp.mediate(httpAction);
+    } catch (e) {
+      if (action.silenceErrors) {
+        this.logWarn(action.context, `Could not retrieve ${action.url}: ${e.message}`,
+          { actor: this.name });
+        return { pageUrl: action.url, quads: new EmptyIterator(), triples: true };
+      } else {
+        throw new Error(`Could not retrieve ${action.url}: ${e.message}`);
+      }
+    }
 
     // Wrap WhatWG readable stream into a Node.js readable stream
     // If the body already is a Node.js stream (in the case of node-fetch), don't do explicit conversion.
@@ -53,11 +64,11 @@ export class ActorRdfDereferenceHttpParse extends ActorRdfDereference implements
     // Only parse if retrieval was successful
     if (httpResponse.status !== 200) {
       if (action.silenceErrors) {
-        this.logWarn(action.context, `Could not retrieve ${action.url} (${httpResponse.status})`,
+        this.logWarn(action.context, `Server failure ${action.url} (${httpResponse.status})`,
           { actor: this.name });
         return { pageUrl: httpResponse.url, quads: new EmptyIterator(), triples: true };
       } else {
-        throw new Error('Could not retrieve ' + action.url + ' (' + httpResponse.status + ')');
+        throw new Error(`Server failure ${action.url} (${httpResponse.status})`);
       }
     }
 
