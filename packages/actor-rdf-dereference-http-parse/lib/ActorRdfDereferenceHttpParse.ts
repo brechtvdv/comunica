@@ -75,7 +75,7 @@ export class ActorRdfDereferenceHttpParse extends ActorRdfDereference implements
     // Parse the resulting response
     const mediaType: string = ActorRdfDereferenceHttpParse.REGEX_MEDIATYPE
       .exec(httpResponse.headers.get('content-type'))[0];
-    const parseAction: IActionRdfParse = { input: responseStream };
+    const parseAction: IActionRdfParse = { input: responseStream, baseIRI: httpResponse.url };
     let parseActionOutput: IActorOutputRootRdfParse;
     try {
       parseActionOutput = (await this.mediatorRdfParse.mediate(
