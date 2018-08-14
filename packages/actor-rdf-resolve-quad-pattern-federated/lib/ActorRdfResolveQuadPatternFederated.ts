@@ -13,6 +13,7 @@ export class ActorRdfResolveQuadPatternFederated extends ActorRdfResolveQuadPatt
   public readonly mediatorResolveQuadPattern: Mediator<Actor<IActionRdfResolveQuadPattern, IActorTest,
     IActorRdfResolveQuadPatternOutput>, IActionRdfResolveQuadPattern, IActorTest, IActorRdfResolveQuadPatternOutput>;
   public readonly skipEmptyPatterns: boolean;
+  public readonly ignoreMetadata: boolean;
 
   protected readonly emptyPatterns: {[sourceHash: string]: RDF.Quad[]} = {};
 
@@ -37,13 +38,15 @@ export class ActorRdfResolveQuadPatternFederated extends ActorRdfResolveQuadPatt
   : Promise<IActorRdfResolveQuadPatternOutput> {
     // Attach metadata to the output
     const output: IActorRdfResolveQuadPatternOutput = await super.getOutput(source, pattern, context);
-    output.metadata = () => new Promise((resolve, reject) => {
-      output.data.on('error', reject);
-      output.data.on('end', () => reject(new Error('No metadata was found')));
-      output.data.on('metadata', (metadata) => {
-        resolve(metadata);
+    if (!this.ignoreMetadata) {
+      output.metadata = () => new Promise((resolve, reject) => {
+        output.data.on('error', reject);
+        output.data.on('end', () => reject(new Error('No metadata was found')));
+        output.data.on('metadata', (metadata) => {
+          resolve(metadata);
+        });
       });
-    });
+    }
     return output;
   }
 
@@ -54,4 +57,5 @@ export interface IActorRdfResolveQuadPatternFederatedArgs
   mediatorResolveQuadPattern: Mediator<Actor<IActionRdfResolveQuadPattern, IActorTest,
     IActorRdfResolveQuadPatternOutput>, IActionRdfResolveQuadPattern, IActorTest, IActorRdfResolveQuadPatternOutput>;
   skipEmptyPatterns?: boolean;
+  ignoreMetadata?: boolean;
 }

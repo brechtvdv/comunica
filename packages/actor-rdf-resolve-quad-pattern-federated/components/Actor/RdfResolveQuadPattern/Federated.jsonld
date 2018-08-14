@@ -23,6 +23,12 @@
           "comment": "If quad patterns that are sub-patterns of empty quad patterns should be skipped. This assumes that sources remain static during query evaluation.",
           "default": true,
           "unique": true
+        },
+        {
+          "@id": "carrqpf:Actor/RdfResolveQuadPattern/Federated/ignoreMetadata",
+          "comment": "If true, this actor will not emit any metadata.",
+          "default": false,
+          "unique": true
         }
       ],
       "constructorArguments": [
@@ -37,6 +43,10 @@
             {
               "keyRaw": "skipEmptyPatterns",
               "value": "carrqpf:Actor/RdfResolveQuadPattern/Federated/skipEmptyPatterns"
+            },
+            {
+              "keyRaw": "ignoreMetadata",
+              "value": "carrqpf:Actor/RdfResolveQuadPattern/Federated/ignoreMetadata"
             }
           ]
         }

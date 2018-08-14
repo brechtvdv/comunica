@@ -134,4 +134,32 @@ describe('ActorRdfResolveQuadPatternFederated', () => {
         });
     });
   });
+
+  describe('An ActorRdfResolveQuadPatternFederated instance that ignores metadata', () => {
+    let actor: ActorRdfResolveQuadPatternFederated;
+
+    beforeEach(() => {
+      actor = new ActorRdfResolveQuadPatternFederated(
+        { name: 'actor', bus, mediatorResolveQuadPattern, skipEmptyPatterns, ignoreMetadata: true });
+    });
+
+    it('should run and not output metadata', () => {
+      const pattern = squad('?s', 'p', 'o', '?g');
+      const context = ActionContext({ '@comunica/bus-rdf-resolve-quad-pattern:sources':
+          AsyncReiterableArray.fromFixedData([
+            { type: 'nonEmptySource', value: 'I will not be empty' },
+            { type: 'nonEmptySource', value: 'I will not be empty' },
+          ])});
+      return actor.run({ pattern, context })
+        .then(async (output) => {
+          expect(output.metadata).toBeFalsy();
+          expect(await arrayifyStream(output.data)).toEqual([
+            squad('s1', 'p1', 'o1'),
+            squad('s1', 'p1', 'o1'),
+            squad('s1', 'p1', 'o2'),
+            squad('s1', 'p1', 'o2'),
+          ]);
+        });
+    });
+  });
 });
