@@ -56,6 +56,9 @@ export class ActorHttpNative extends ActorHttp {
       options.headers['user-agent'] = this.userAgent;
     }
 
+    // Ensure that special characters are properly encoded, otherwise Node might throw an error
+    options.url = encodeURI(options.url);
+
     options.method = options.method || 'GET';
     options.timeout = this.timeout;
 
