@@ -84,5 +84,12 @@ describe('ActorInitRdfParse', () => {
           return expect(await arrayifyStream(output.stdout)).toBeTruthy();
         });
     });
+
+    it('should run with two args', () => {
+      return actor.run({ argv: [ 'text/turtle', 'https://www.google.com/' ], env: {}, stdin: input })
+        .then(async (output) => {
+          return expect(await arrayifyStream(output.stdout)).toBeTruthy();
+        });
+    });
   });
 });
