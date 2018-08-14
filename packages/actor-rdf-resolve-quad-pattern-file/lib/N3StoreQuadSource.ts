@@ -5,7 +5,7 @@ import {N3StoreIterator} from "./N3StoreIterator";
 
 export class N3StoreQuadSource implements ILazyQuadSource {
 
-  protected readonly store: any;
+  public readonly store: any;
 
   constructor(store: any) {
     this.store = store;

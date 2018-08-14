@@ -57,10 +57,11 @@ export class ActorRdfResolveQuadPatternFile extends ActorRdfResolveQuadPatternSo
 
   protected async getSource(context: ActionContext, silenceErrors?: boolean): Promise<ILazyQuadSource> {
     const file: string = this.getContextSource(context).value;
-    if (!this.stores.has(file)) {
-      await this.initializeFile(file, context, silenceErrors);
+    let storePromise = this.stores.get(file);
+    if (!storePromise) {
+      storePromise = this.initializeFile(file, context, silenceErrors);
     }
-    return new N3StoreQuadSource(await this.stores.get(file));
+    return new N3StoreQuadSource(await storePromise);
   }
 
   protected async getOutput(source: RDF.Source, pattern: RDF.Quad, context: ActionContext)
@@ -68,16 +69,14 @@ export class ActorRdfResolveQuadPatternFile extends ActorRdfResolveQuadPatternSo
     // Attach totalItems to the output
     const output: IActorRdfResolveQuadPatternOutput = await super.getOutput(source, pattern, context);
     output.metadata = () => new Promise((resolve, reject) => {
-      const file: string = this.getContextSource(context).value;
-      this.stores.get(file).then((store) => {
-        const totalItems: number = store.countQuads(
-          N3StoreIterator.nullifyVariables(pattern.subject),
-          N3StoreIterator.nullifyVariables(pattern.predicate),
-          N3StoreIterator.nullifyVariables(pattern.object),
-          N3StoreIterator.nullifyVariables(pattern.graph),
-        );
-        resolve({ totalItems });
-      }, reject);
+      const store = (<N3StoreQuadSource> source).store;
+      const totalItems: number = store.countQuads(
+        N3StoreIterator.nullifyVariables(pattern.subject),
+        N3StoreIterator.nullifyVariables(pattern.predicate),
+        N3StoreIterator.nullifyVariables(pattern.object),
+        N3StoreIterator.nullifyVariables(pattern.graph),
+      );
+      resolve({ totalItems });
     });
     return output;
   }
