@@ -50,13 +50,15 @@ export default class Requester {
       request.end();
     });
     request.on('socket', (socket: Socket) => {
-      socket.setTimeout(settings.timeout, () => {
+      socket.setMaxListeners(0);
+      socket.setTimeout(settings.timeout);
+      socket.once('timeout', () => {
         requestProxy.emit('error', new Error('Socket timeout on reading ' + settings.url));
         socket.destroy();
       });
-      request.on('error', (e) => {
-        requestProxy.emit('error', e);
-      });
+    });
+    request.on('error', (e) => {
+      requestProxy.emit('error', e);
     });
 
     request.end();
