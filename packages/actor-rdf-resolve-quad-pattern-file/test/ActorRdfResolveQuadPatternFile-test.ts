@@ -2,7 +2,9 @@ import {ActorRdfResolveQuadPattern} from "@comunica/bus-rdf-resolve-quad-pattern
 import {ActionContext, Bus} from "@comunica/core";
 import "jest-rdf";
 import {Store as N3Store} from "n3";
+import {Readable} from "stream";
 import {ActorRdfResolveQuadPatternFile} from "../lib/ActorRdfResolveQuadPatternFile";
+
 const arrayifyStream = require('arrayify-stream');
 const quad = require('rdf-quad');
 const streamifyArray = require('streamify-array');
@@ -38,17 +40,20 @@ describe('ActorRdfResolveQuadPatternFile', () => {
     let mediatorRdfDereference;
 
     beforeEach(() => {
+      const errorStream = new Readable();
+      errorStream._read = () => { errorStream.emit('error', new Error('quad pattern file error')); };
       mediatorRdfDereference = {
-        mediate: (action) => action.url ? Promise.resolve({ quads: streamifyArray([
-          quad('s1', 'p1', 'o1'),
-          quad('s1', 'p1', 'o2'),
-          quad('s1', 'p2', 'o1'),
-          quad('s1', 'p2', 'o2'),
-          quad('s2', 'p1', 'o1'),
-          quad('s2', 'p1', 'o2'),
-          quad('s2', 'p2', 'o1'),
-          quad('s2', 'p2', 'o2'),
-        ]) }) : Promise.reject('No test file'),
+        mediate: (action) => action.url ? Promise.resolve({ quads: action.url === 'error'
+            ? errorStream : streamifyArray([
+              quad('s1', 'p1', 'o1'),
+              quad('s1', 'p1', 'o2'),
+              quad('s1', 'p2', 'o1'),
+              quad('s1', 'p2', 'o2'),
+              quad('s2', 'p1', 'o1'),
+              quad('s2', 'p1', 'o2'),
+              quad('s2', 'p2', 'o1'),
+              quad('s2', 'p2', 'o2'),
+            ]) }) : Promise.reject('No test file'),
       };
       actor = new ActorRdfResolveQuadPatternFile({ name: 'actor', bus, mediatorRdfDereference });
     });
@@ -99,6 +104,18 @@ describe('ActorRdfResolveQuadPatternFile', () => {
 
     it('should fail on file initialization with an invalid file', () => {
       return expect(actor.initializeFile(null, null)).rejects.toBeTruthy();
+    });
+
+    it('should fail on file initialization with a invalid file contents', () => {
+      return expect(actor.initializeFile('error', null)).rejects.toBeTruthy();
+    });
+
+    it('should silently fail on file initialization with an invalid file', () => {
+      return expect(actor.initializeFile(null, null, true)).resolves.toBeTruthy();
+    });
+
+    it('should silently fail on file initialization with a invalid file contents', () => {
+      return expect(actor.initializeFile('error', null, true)).resolves.toBeTruthy();
     });
 
     it('should allow a file quad source to be created for a context with a valid file', () => {
