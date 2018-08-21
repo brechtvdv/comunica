@@ -128,6 +128,11 @@ describe('ActorRdfResolveQuadPatternFile', () => {
           { type: 'file', value: null  }}))).rejects.toBeTruthy();
     });
 
+    it('should silently fail on creating a silenced file quad source for a context with an invalid file', () => {
+      return expect((<any> actor).getSource(ActionContext({ '@comunica/bus-rdf-resolve-quad-pattern:source':
+          { type: 'file', value: null, silenceErrors: true }}))).resolves.toBeTruthy();
+    });
+
     it('should create only a file quad source only once per file', () => {
       let doc1 = null;
       return (<any> actor).getSource(ActionContext({ '@comunica/bus-rdf-resolve-quad-pattern:source':

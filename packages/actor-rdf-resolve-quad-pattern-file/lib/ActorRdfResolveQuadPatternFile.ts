@@ -1,6 +1,8 @@
 import {IActionRdfDereference, IActorRdfDereferenceOutput} from "@comunica/bus-rdf-dereference";
-import {ActorRdfResolveQuadPatternSource, IActionRdfResolveQuadPattern, IActorRdfResolveQuadPatternOutput,
-  ILazyQuadSource} from "@comunica/bus-rdf-resolve-quad-pattern";
+import {
+  ActorRdfResolveQuadPatternSource, IActionRdfResolveQuadPattern, IActorRdfResolveQuadPatternOutput, IDataSource,
+  ILazyQuadSource
+} from "@comunica/bus-rdf-resolve-quad-pattern";
 import {ActionContext, Actor, IActorArgs, IActorTest, Mediator} from "@comunica/core";
 import {N3Store, Store} from "n3";
 import LRU = require("lru-cache");
@@ -56,10 +58,11 @@ export class ActorRdfResolveQuadPatternFile extends ActorRdfResolveQuadPatternSo
   }
 
   protected async getSource(context: ActionContext, silenceErrors?: boolean): Promise<ILazyQuadSource> {
-    const file: string = this.getContextSource(context).value;
+    const source: IDataSource = this.getContextSource(context);
+    const file: string = source.value;
     let storePromise = this.stores.get(file);
     if (!storePromise) {
-      storePromise = this.initializeFile(file, context, silenceErrors);
+      storePromise = this.initializeFile(file, context, silenceErrors || source.silenceErrors);
     }
     return new N3StoreQuadSource(await storePromise);
   }
