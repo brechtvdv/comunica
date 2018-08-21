@@ -1,7 +1,7 @@
 import {ActorQueryOperation, Bindings, IActorQueryOperationOutputBindings} from "@comunica/bus-query-operation";
 import {ActionContext, Bus} from "@comunica/core";
-import {ArrayIterator} from "asynciterator";
 import {literal, namedNode, quad, variable} from "@rdfjs/data-model";
+import {ArrayIterator} from "asynciterator";
 import {ActorQueryOperationBgpLeftDeepJoin} from "../lib/ActorQueryOperationBgpLeftDeepJoin";
 const arrayifyStream = require('arrayify-stream');
 
