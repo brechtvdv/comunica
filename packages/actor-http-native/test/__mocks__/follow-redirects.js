@@ -21,11 +21,15 @@ function request(settings, func) {
   });
   setImmediate(() => func(body));
 
-  return {
-    abort: () => { },
-    end: () => {},
-    on: (evt, cb) => { },
-  }
+  const r = {
+      abort: () => { },
+      end: () => {},
+      on: (evt, cb) => {
+        r[evt] = cb;
+      },
+    };
+  body.request = r;
+  return r;
 }
 
 function Agent() {}

@@ -54,7 +54,7 @@ describe('ActorHttpNative', () => {
     let actor: ActorHttpNative;
 
     beforeEach(() => {
-      actor = new ActorHttpNative({ name: 'actor', bus });
+      actor = new ActorHttpNative({ name: 'actor', bus, timeout: 10 });
     });
 
     it('should test', () => {
@@ -74,7 +74,7 @@ describe('ActorHttpNative', () => {
     });
 
     it('should run with agent options', () => {
-      actor = new ActorHttpNative({ name: 'actor', bus, agentOptions: '{ "name": "007" }' });
+      actor = new ActorHttpNative({ name: 'actor', bus, agentOptions: '{ "name": "007" }', timeout: 10 });
       mockSetup({ statusCode: 404 });
       return expect(actor.run({ input: new Request('http://example.com')})).resolves
         .toMatchObject({ status: 404 });
@@ -164,5 +164,51 @@ describe('Requester', () => {
         resolve();
       });
     });
+  });
+
+  it('errors on connection timeouts', () => {
+    const requester = new Requester();
+    const req = requester.createRequest(url.parse('http://example.com/test'));
+
+    req.on('response', (response) => {
+      response.request.timeout(); // Manually call the timeout callback
+    });
+
+    return expect(new Promise((resolve) => req.on('error', resolve))).resolves.toBeInstanceOf(Error);
+  });
+
+  it('errors on socket timeouts', async () => {
+    const requester = new Requester();
+    const req = requester.createRequest({ ...url.parse('http://example.com/test'), timeout: 10 });
+
+    let maxListeners = -10;
+    let timeout = 0;
+    let destroyed = false;
+
+    req.on('response', (response) => {
+      const mySocket = {
+        destroy: () => { destroyed = true; },
+        once: (evt, cb) => { cb(); },
+        setMaxListeners: (v) => { maxListeners = v; },
+        setTimeout: (v) => { timeout = v; },
+      };
+      response.request.socket(mySocket); // Manually call the timeout callback
+    });
+
+    await expect(new Promise((resolve) => req.on('error', resolve))).resolves.toBeInstanceOf(Error);
+    expect(maxListeners).toBe(0);
+    expect(timeout).toBe(10);
+    expect(destroyed).toBe(true);
+  });
+
+  it('errors on request errors', () => {
+    const requester = new Requester();
+    const req = requester.createRequest(url.parse('http://example.com/test'));
+
+    req.on('response', (response) => {
+      response.request.error(new Error('HTTP native request error')); // Manually emit an error
+    });
+
+    return expect(new Promise((resolve) => req.on('error', resolve))).resolves.toBeInstanceOf(Error);
   });
 });
