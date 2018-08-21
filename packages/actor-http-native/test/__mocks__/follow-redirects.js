@@ -23,7 +23,8 @@ function request(settings, func) {
 
   return {
     abort: () => { },
-    end: () => {}
+    end: () => {},
+    on: (evt, cb) => { },
   }
 }
 
