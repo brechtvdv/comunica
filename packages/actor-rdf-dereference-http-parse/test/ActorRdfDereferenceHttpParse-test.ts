@@ -3,7 +3,7 @@ import {Bus} from "@comunica/core";
 import {MediatorRace} from "@comunica/mediator-race";
 import {EmptyIterator} from "asynciterator";
 import "isomorphic-fetch";
-import {PassThrough} from "stream";
+import {PassThrough, Readable} from "stream";
 import {ActorRdfDereferenceHttpParse} from "../lib/ActorRdfDereferenceHttpParse";
 
 describe('ActorRdfDereferenceHttpParse', () => {
@@ -45,18 +45,29 @@ describe('ActorRdfDereferenceHttpParse', () => {
           if (action.handleMediaType === 'error') {
             return Promise.reject(new Error('Invalid media type'));
           }
+          if (action.handleMediaType === 'errorstream') {
+            const quads = new Readable();
+            quads._read = () => {
+              quads.emit('error', new Error('rdf dereference http parse stream error'));
+            };
+            return { handle: { quads, triples: true }};
+          }
           return { handle: { quads: 'fine', triples: true }};
         }
       };
       mediatorHttp.mediate = (action) => {
+        if (action.input.indexOf('promiseError') >= 0) {
+          return Promise.reject(new Error('rdf dereference http parser error'));
+        }
         const status: number = action.input.startsWith('https://www.google.com/') ? 200 : 400;
-        return {
+        return Promise.resolve({
           body: action.input === 'https://www.google.com/noweb'
           ? require('node-web-streams').toWebReadableStream(new PassThrough()) : new PassThrough(),
-          headers: {get: () => action.input.indexOf('parseerror') >= 0 ? 'error' : 'a; charset=utf-8'},
+          headers: {get: () => action.input.indexOf('parseerrorstream') >= 0 ? 'errorstream'
+              : action.input.indexOf('parseerror') >= 0 ? 'error' : 'a; charset=utf-8'},
           status,
           url: 'https://www.google.com/index.html',
-        };
+        });
       };
       actor = new ActorRdfDereferenceHttpParse({ name: 'actor', bus, mediatorHttp, mediatorRdfParse });
     });
@@ -104,6 +115,15 @@ describe('ActorRdfDereferenceHttpParse', () => {
         .toMatchObject({ pageUrl: 'https://www.google.com/index.html', quads: 'fine', triples: true });
     });
 
+    it('should not run on a http mediator error', () => {
+      return expect(actor.run({ url: 'promiseError' })).rejects.toBeTruthy();
+    });
+
+    it('should run on a http mediator error with silent errors', () => {
+      return expect(actor.run({ url: 'promiseError', silenceErrors: true })).resolves
+        .toMatchObject({ pageUrl: 'promiseError', quads: new EmptyIterator(), triples: true });
+    });
+
     it('should not run on a 404', () => {
       return expect(actor.run({ url: 'https://www.nogoogle.com/notfound' })).rejects.toBeTruthy();
     });
@@ -120,6 +140,12 @@ describe('ActorRdfDereferenceHttpParse', () => {
     it('should run on a parse error with silent errors', async () => {
       return expect(actor.run({ url: 'https://www.google.com/parseerror', silenceErrors: true })).resolves
         .toMatchObject({ pageUrl: 'https://www.google.com/index.html', quads: new EmptyIterator(), triples: true });
+    });
+
+    it('should run and silence parsing stream errors with silent errors', async () => {
+      const output = await actor.run({ url: 'https://www.google.com/parseerrorstream', silenceErrors: true });
+      (<any> output.quads)._read();
+      return expect(output).toBeTruthy();
     });
   });
 });
