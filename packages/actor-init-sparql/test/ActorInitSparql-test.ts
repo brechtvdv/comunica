@@ -2,7 +2,7 @@ import {ActorInit} from "@comunica/bus-init";
 import {Bindings} from "@comunica/bus-query-operation";
 import {ActionContext, Bus, KEY_CONTEXT_LOG} from "@comunica/core";
 import {LoggerPretty} from "@comunica/logger-pretty";
-import {literal, namedNode, variable} from "rdf-data-model";
+import {literal, namedNode, variable} from "@rdfjs/data-model";
 import {Factory} from "sparqlalgebrajs";
 import {PassThrough, Readable} from "stream";
 import {ActorInitSparql} from "../lib/ActorInitSparql";
