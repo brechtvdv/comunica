@@ -26,15 +26,15 @@ export class ActorRdfResolveQuadPatternFile extends ActorRdfResolveQuadPatternSo
   }
 
   public initializeFile(file: string, context: ActionContext, silenceErrors?: boolean): Promise<any> {
-    const promise = this.mediatorRdfDereference.mediate({ context, url: file, silenceErrors })
-      .then((page: IActorRdfDereferenceOutput) => new Promise((resolve, reject) => {
+    const promise: Promise<N3Store> = this.mediatorRdfDereference.mediate({ context, url: file, silenceErrors })
+      .then((page: IActorRdfDereferenceOutput) => new Promise<N3Store>((resolve, reject) => {
         const store: N3Store = new Store();
         page.quads.on('data', (quad) => store.addQuad(quad));
         page.quads.on('error', silenceErrors ? () => resolve(store) : reject);
         page.quads.on('end', () => resolve(store));
       }), (error: Error) => {
         if (silenceErrors) {
-          return Promise.resolve(new N3Store());
+          return Promise.resolve(new Store());
         } else {
           return Promise.reject(error);
         }
