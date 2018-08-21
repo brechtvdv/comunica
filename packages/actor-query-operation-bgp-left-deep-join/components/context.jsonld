@@ -1,0 +1,12 @@
+{
+  "@context": [
+    "https://linkedsoftwaredependencies.org/bundles/npm/componentsjs/^3.0.0/components/context.jsonld",
+    {
+      "npmd": "https://linkedsoftwaredependencies.org/bundles/npm/",
+      "caqobldj": "npmd:@comunica/actor-query-operation-bgp-left-deep-join/",
+      "files-caqobldj": "caqobldj:^1.0.0/",
+
+      "ActorQueryOperationBgpLeftDeepJoin": "caqobldj:Actor/QueryOperation/BgpLeftDeepJoin"
+    }
+  ]
+}
