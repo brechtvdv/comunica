@@ -1,0 +1,30 @@
+{
+  "@context": [
+    "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-context-preprocess-follow-reachable-sources-all/^1.0.0/components/context.jsonld",
+    "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/bus-rdf-dereference/^1.0.0/components/context.jsonld"
+  ],
+  "@id": "npmd:@comunica/actor-context-preprocess-follow-reachable-sources-all",
+  "components": [
+    {
+      "@id": "cacpfrsa:ActionObserver/RdfDereference/FollowReachableSourcesAll",
+      "@type": "Class",
+      "extends": "cc:ActionObserver",
+      "requireElement": "ActionObserverRdfDereference",
+      "comment": "Tracks all URIs in dereferenced quads.",
+      "parameters": [
+        {
+          "@id": "cc:ActionObserver/bus",
+          "defaultScoped": {
+            "defaultScope": "cacpfrsa:ActionObserver/RdfDereference/FollowReachableSourcesAll",
+            "defaultScopedValue": { "@id": "cbrd:Bus/RdfDereference" }
+          }
+        }
+      ],
+      "constructorArguments": [
+        {
+          "extends": "cc:ActionObserver/constructorArgumentsObject"
+        }
+      ]
+    }
+  ]
+}

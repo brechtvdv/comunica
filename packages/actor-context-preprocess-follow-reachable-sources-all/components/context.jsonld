@@ -1,0 +1,13 @@
+{
+  "@context": [
+    "https://linkedsoftwaredependencies.org/bundles/npm/componentsjs/^3.0.0/components/context.jsonld",
+    {
+      "npmd": "https://linkedsoftwaredependencies.org/bundles/npm/",
+      "cacpfrsa": "npmd:@comunica/actor-context-preprocess-follow-reachable-sources-all/",
+      "files-cacpfrsa": "cacpfrsa:^1.0.0/",
+
+      "ActorContextPreprocessFollowReachableSourcesAll": "cacpfrsa:Actor/ContextPreprocess/FollowReachableSourcesAll",
+      "ActionObserverRdfDereferenceFollowReachableSourcesAll": "cacpfrsa:ActionObserver/RdfDereference/FollowReachableSourcesAll"
+    }
+  ]
+}

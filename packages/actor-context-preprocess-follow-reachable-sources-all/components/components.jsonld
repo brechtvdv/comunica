@@ -1,0 +1,10 @@
+{
+  "@context": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-context-preprocess-follow-reachable-sources-all/^1.0.0/components/context.jsonld",
+  "@id": "npmd:@comunica/actor-context-preprocess-follow-reachable-sources-all",
+  "@type": "Module",
+  "requireName": "@comunica/actor-context-preprocess-follow-reachable-sources-all",
+  "import": [
+    "files-cacpfrsa:components/ActionObserver/RdfDereference/FollowReachableSourcesAll.jsonld",
+    "files-cacpfrsa:components/Actor/ContextPreprocess/FollowReachableSourcesAll.jsonld"
+  ]
+}

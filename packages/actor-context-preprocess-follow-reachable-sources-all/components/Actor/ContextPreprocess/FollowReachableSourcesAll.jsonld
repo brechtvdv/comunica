@@ -1,0 +1,44 @@
+{
+  "@context": [
+    "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-context-preprocess-follow-reachable-sources-all/^1.0.0/components/context.jsonld",
+    "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/bus-context-preprocess/^1.0.0/components/context.jsonld"
+  ],
+  "@id": "npmd:@comunica/actor-context-preprocess-follow-reachable-sources-all",
+  "components": [
+    {
+      "@id": "cacpfrsa:Actor/ContextPreprocess/FollowReachableSourcesAll",
+      "@type": "Class",
+      "extends": "cbcp:Actor/ContextPreprocess",
+      "requireElement": "ActorContextPreprocessFollowReachableSourcesAll",
+      "comment": "A comunica Follow Reachable Sources All Context Preprocess Actor.",
+      "parameters": [
+        {
+          "@id": "cacpfrsa:Actor/ContextPreprocess/rdfDereferenceObserver",
+          "comment": "The RDF Dereference observer that tracks all URIs in parsed quads",
+          "range": "cacpfrsa:ActionObserver/RdfDereference/FollowReachableSourcesAll",
+          "required": true,
+          "unique": true,
+          "defaultScoped": {
+            "defaultScope": "cacpfrsa:Actor/ContextPreprocess/FollowReachableSourcesAll",
+            "defaultScopedValue": {
+              "@id": "cacpfrsa:Actor/ContextPreprocess/rdfDereferenceObserver/default",
+              "@type": "cacpfrsa:ActionObserver/RdfDereference/FollowReachableSourcesAll"
+            }
+          }
+        }
+      ],
+      "constructorArguments": [
+        {
+          "@id": "cacpfrsa:Actor/ContextPreprocess/FollowReachableSourcesAll/constructorArgumentsObject",
+          "extends": "cbcp:Actor/ContextPreprocess/constructorArgumentsObject",
+          "fields": [
+            {
+              "keyRaw": "rdfDereferenceObserver",
+              "value": "cacpfrsa:Actor/ContextPreprocess/rdfDereferenceObserver"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
