@@ -39,7 +39,7 @@
     "@types/xml": "^1.0.2",
     "arrayify-stream": "^1.0.0",
     "asynciterator": "^2.0.0",
-    "babel-loader": "^8.0.2",
+    "babel-loader": "8.0.2",
     "coveralls": "^3.0.0",
     "immutable": "^3.8.2",
     "isomorphic-fetch": "^2.2.1",
