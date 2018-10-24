@@ -37,22 +37,12 @@ export class ActorRdfParseJsonLd extends ActorRdfParseFixedMediaTypes {
 
   public async runHandle(action: IActionRdfParse, mediaType: string, context: ActionContext)
     : Promise<IActorRdfParseOutput> {
-
-    console.log("\n");
-    console.log("[RdfParseJsonLd] Json LD PARSER RUNS...\n\n");
-
     const quads = new Readable({ objectMode: true });
     let initialized = false;
     quads._read = async () => {
       if (!initialized) {
         initialized = true;
         const jsonString = await require('stream-to-string')(action.input);
-
-        console.log("\n[RdfParseJsonLd] First 100 chars of jsonstring:");
-        console.log(jsonString.substr(0, 100));
-
-        console.log("\n\n");
-
         const quadsArray = await this.jsonLd.toRDF(JSON.parse(jsonString), {});
         for (const quad of quadsArray) {
           quads.push(mapTerms(quad, ActorRdfParseJsonLd.mapTerm));
