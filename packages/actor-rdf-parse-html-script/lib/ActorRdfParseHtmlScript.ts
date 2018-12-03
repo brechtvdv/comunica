@@ -13,7 +13,7 @@ import {Readable} from "stream";
 /**
  * A HTML script RDF Parse actor that listens on the 'rdf-parse' bus.
  *
- * It is able to extract and parse any RDF serialization from HTML files
+ * It is able to extract and parse any RDF serialization from script tags in HTML files
  * and announce the presence of them by media type.
  */
 export class ActorRdfParseHtmlScript extends ActorRdfParseFixedMediaTypes {
@@ -28,20 +28,18 @@ export class ActorRdfParseHtmlScript extends ActorRdfParseFixedMediaTypes {
   public async runHandle(action: IActionRdfParse, mediaType: string, context: ActionContext):
     Promise<IActorRdfParseOutput> {
 
-    const quads = new Readable({objectMode: true});
+    const quads = new Readable({ objectMode: true });
 
     quads._read = async () => {
 
-      // Stringify HTML input
       const htmlString: string = await require('stream-to-string')(action.input);
 
-      // Fetch the supported types
       const supportedTypes: string[] = Object.keys((await this.mediatorRdfParse
         .mediate({
           context,
           mediaTypes: true,
         })).mediaTypes);
-      supportedTypes.push("application/ld+json");   // Add json-ld while waiting for issue 138
+      supportedTypes.push("application/ld+json");
 
       let stream: Readable;
       let index: number;
@@ -59,12 +57,12 @@ export class ActorRdfParseHtmlScript extends ActorRdfParseFixedMediaTypes {
 
             const parseAction = {
               context,
-              handle: { input: stream },
+              handle: { baseIRI: action.baseIRI, input: stream },
               handleMediaType: supportedTypes[index],
             };
             const returned = (await this.mediatorRdfParse.mediate(parseAction)).handle;
 
-            returned.quads.on('data', (chunk) => {
+            returned.quads.on('data', (chunk: any) => {
               quads.push(chunk);
             });
 
@@ -74,6 +72,12 @@ export class ActorRdfParseHtmlScript extends ActorRdfParseFixedMediaTypes {
                 quads.push(null);
               }
             });
+          }
+        },
+
+        onend: () => {
+          if (noRDFScriptTags) {
+            quads.push(null);
           }
         },
 
@@ -92,13 +96,11 @@ export class ActorRdfParseHtmlScript extends ActorRdfParseFixedMediaTypes {
             stream.push(text);
           }
         },
-      }, {decodeEntities: true});
-      await parser.write(htmlString);
+      }, { decodeEntities: true });
+
+      parser.write(htmlString);
       parser.end();
 
-      if (noRDFScriptTags) {
-        quads.push(null);
-      }
     };
 
     return { quads };

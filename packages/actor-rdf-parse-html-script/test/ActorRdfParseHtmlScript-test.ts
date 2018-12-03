@@ -17,12 +17,37 @@ describe('ActorRdfParseHtml', () => {
   let mediator;
   let context;
 
+  let jsonldParser: ActorRdfParseJsonLd;
+  let n3Parser: ActorRdfParseN3;
+  let rdfxmlParser: ActorRdfParseRdfXml;
+
   beforeEach(() => {
     bus = new Bus({ name: 'bus' });
 
-    mediator = {
-      mediate: (action) => {
+    jsonldParser = new ActorRdfParseJsonLd(
+      { bus, mediaTypes:
+      {
+        'application/json': 0.1,
+        'application/ld+json': 1.0,
+      },
+        name: 'jsonldParser',
+      });
+    n3Parser = new ActorRdfParseJsonLd(
+      { bus, mediaTypes:
+      {
+        'application/n-quads': 0.7,
+        'application/n-triples': 0.3,
+        'application/trig': 1.0,
+        'text/n3': 0.2,
+        'text/turtle': 0.6,
+      },
+        name: 'n3Parser',
+      });
+    rdfxmlParser = new ActorRdfParseJsonLd(
+      { name: 'rdfxmlParser', bus, mediaTypes: { 'application/rdf+xml': 1.0 } });
 
+    mediator = {
+      mediate: async (action) => {
         if (action.mediaTypes === true) {
           return Promise.resolve({ mediaTypes: {
             "application/ld+json": 1,
@@ -33,18 +58,32 @@ describe('ActorRdfParseHtml', () => {
             "text/turtle": 6,
           } });
         } else {
-          return Promise.resolve({ handle: { quads: streamifyArray([
-            quad('http://example.org/a', 'http://example.org/b', 'http://example.org/c'),
-            quad('http://example.org/a', 'http://example.org/d', 'http://example.org/e'),
-          ]) }});
-        }
+          action.input = action.handle.input;
 
+          let output;
+          switch (action.handleMediaType) {
+          case "application/n-quads":
+          case "application/n-triples":
+          case "application/trig":
+          case "text/n3":
+          case "text/turtle":
+            output = await n3Parser.runHandle(action, action.handleMediaType, context);
+            break;
+          case "application/ld+json":
+          case "application/json":
+            output = await jsonldParser.runHandle(action, action.handleMediaType, context);
+            break;
+          case "application/rdf+xml":
+            output = await rdfxmlParser.runHandle(action, action.handleMediaType, context);
+            break;
+          }
+
+          return Promise.resolve({ handle: { quads: output.quads } });
+        }
       },
     };
 
-    context = ActionContext({ '@comunica/bus-rdf-parse:source':
-          { type: 'handle', value: 'myValue' },
-    });
+    context = ActionContext;
   });
 
   describe('The ActorRdfParseHtmlScript module', () => {
@@ -68,14 +107,9 @@ describe('ActorRdfParseHtml', () => {
 
   describe('An ActorRdfParseHtmlScript instance', () => {
     let actor: ActorRdfParseHtmlScript;
-    const  input: Readable = stringToStream(
-      `<script type="application/ld+json">{
-            "@id": "http://example.org/a",
-            "http://example.org/b": "http://example.org/c",
-            "http://example.org/d": "http://example.org/e"
-        }</script>`);
-
+    let input: Readable;
     const parseAction: IActionRdfParse = {
+      baseIRI: "base_",
       context,
       input,
     };
@@ -83,7 +117,6 @@ describe('ActorRdfParseHtml', () => {
     beforeEach(() => {
       actor = new ActorRdfParseHtmlScript({ name: 'actor', bus, mediaTypes: { 'text/html': 1.0 } });
       actor.mediatorRdfParse = mediator;
-      parseAction.context = context;
       parseAction.input = stringToStream(
         `<script type="application/ld+json">{
             "@id": "http://example.org/a",
@@ -95,25 +128,26 @@ describe('ActorRdfParseHtml', () => {
     describe('for parsing', () => {
 
       it('should test on text/html', () => {
-        return expect(actor.test({ handle: { input: parseAction.input },
+        return expect(actor.test({ handle: { input: parseAction.input, baseIRI: parseAction.baseIRI },
           handleMediaType: 'text/html' })).resolves.toBeTruthy();
       });
 
       it('should not test on application/json', () => {
-        return expect(actor.test({ handle: { input: parseAction.input },
+        return expect(actor.test({ handle: { input: parseAction.input, baseIRI: parseAction.baseIRI },
           handleMediaType: 'application/json' })).rejects.toBeTruthy();
       });
 
       it('should not test on application/ld+json', () => {
-        return expect(actor.test({ handle: { input: parseAction.input },
+        return expect(actor.test({ handle: { input: parseAction.input, baseIRI: parseAction.baseIRI },
           handleMediaType: 'application/ld+json' })).rejects.toBeTruthy();
       });
 
       it('should run', () => {
-        return actor.run({ context, handle: { input: parseAction.input }, handleMediaType: 'text/html' })
+        return actor.run({ context, handle: { input: parseAction.input, baseIRI: parseAction.baseIRI },
+          handleMediaType: 'text/html' })
           .then(async (output) => expect(await arrayifyStream(output.handle.quads)).toEqualRdfQuadArray([
-            quad('http://example.org/a', 'http://example.org/b', 'http://example.org/c'),
-            quad('http://example.org/a', 'http://example.org/d', 'http://example.org/e'),
+            quad('http://example.org/a', 'http://example.org/b', '"http://example.org/c"'),
+            quad('http://example.org/a', 'http://example.org/d', '"http://example.org/e"'),
           ]));
       });
 
@@ -126,8 +160,35 @@ describe('ActorRdfParseHtml', () => {
           }</script>`);
 
         return actor.run(
-          { context: parseAction.context, handle: { input: parseAction.input }, handleMediaType: 'text/html' })
+          { context: parseAction.context, handle: { input: parseAction.input, baseIRI: parseAction.baseIRI },
+            handleMediaType: 'text/html' })
           .then(async (output) => expect(await arrayifyStream(output.handle.quads)).toEqualRdfQuadArray([]));
+      });
+
+      it('should run with no script type but no output', () => {
+        parseAction.input = stringToStream(
+          `<script>random_text_between_script_tags</script>`);
+
+        return actor.run(
+          { context: parseAction.context, handle: { input: parseAction.input, baseIRI: parseAction.baseIRI },
+            handleMediaType: 'text/html' })
+          .then(async (output) => expect(await arrayifyStream(output.handle.quads)).toEqualRdfQuadArray([]));
+      });
+
+      it('should run with one N-Quads script', () => {
+        parseAction.input = stringToStream(
+          `<script type="application/n-quads">
+            http://example.org/f http://example.org/g http://example.org/h "" .
+            http://example.org/f http://example.org/i http://example.org/j "" .
+          </script>`);
+
+        return actor.run(
+          { context: parseAction.context, handle: { input: parseAction.input, baseIRI: parseAction.baseIRI },
+            handleMediaType: 'text/html' })
+          .then(async (output) => expect(await arrayifyStream(output.handle.quads)).toEqualRdfQuadArray([
+            quad("http://example.org/f", "http://example.org/g", "http://example.org/h", ""),
+            quad("http://example.org/f", "http://example.org/i", "http://example.org/j", ""),
+          ]));
       });
 
       it('should run with two JSON-LD scripts', () => {
@@ -141,19 +202,20 @@ describe('ActorRdfParseHtml', () => {
           </script>
           <script type="application/ld+json">
           [{
-              "@id": "http://example.org/a",
-              "http://example.org/b": "http://example.org/c",
-              "http://example.org/d": "http://example.org/e"
+              "@id": "http://example.org/f",
+              "http://example.org/g": "http://example.org/h",
+              "http://example.org/i": "http://example.org/j"
           }]
           </script>`);
 
         return actor.run(
-          { context: parseAction.context, handle: { input: parseAction.input }, handleMediaType: 'text/html' })
+          { context: parseAction.context, handle: { input: parseAction.input, baseIRI: parseAction.baseIRI },
+            handleMediaType: 'text/html' })
           .then(async (output) => expect(await arrayifyStream(output.handle.quads)).toEqualRdfQuadArray([
-            quad('http://example.org/a', 'http://example.org/b', 'http://example.org/c'),
-            quad('http://example.org/a', 'http://example.org/d', 'http://example.org/e'),
-            quad('http://example.org/a', 'http://example.org/b', 'http://example.org/c'),
-            quad('http://example.org/a', 'http://example.org/d', 'http://example.org/e'),
+            quad('http://example.org/a', 'http://example.org/b', '"http://example.org/c"'),
+            quad('http://example.org/a', 'http://example.org/d', '"http://example.org/e"'),
+            quad('http://example.org/f', 'http://example.org/g', '"http://example.org/h"'),
+            quad('http://example.org/f', 'http://example.org/i', '"http://example.org/j"'),
           ]));
       });
 
@@ -162,7 +224,7 @@ describe('ActorRdfParseHtml', () => {
           `<script type="application/ld+json">
           [{
               "@id": "http://example.org/a",
-              "http://example.org/b": "http://example.org/c",
+              "http://example.org/b": ""http://example.org/c"",
               "http://example.org/d": "http://example.org/e"
           }]
           </script>
@@ -175,7 +237,8 @@ describe('ActorRdfParseHtml', () => {
           </script>`);
 
         return actor.run(
-          { context: parseAction.context, handle: { input: parseAction.input }, handleMediaType: 'text/html' })
+          { context: parseAction.context, handle: { input: parseAction.input, baseIRI: parseAction.baseIRI },
+            handleMediaType: 'text/html' })
           .then(async (output) => expect(await arrayifyStream(output.handle.quads)).toEqualRdfQuadArray([
             quad('http://example.org/a', 'http://example.org/b', 'http://example.org/c'),
             quad('http://example.org/a', 'http://example.org/d', 'http://example.org/e'),
@@ -192,26 +255,54 @@ describe('ActorRdfParseHtml', () => {
           }]
           </script>
           <script type="application/n-quads">
-            http://example.org/a http://example.org/b http://example.org/c "" .
-            http://example.org/a http://example.org/d http://example.org/e "" .
+            http://example.org/f http://example.org/g http://example.org/h "" .
+            http://example.org/f http://example.org/i http://example.org/j "" .
           </script>
           <script type="application/ld+json">
             [{
-              "@id": "http://example.org/a",
-              "http://example.org/b": "http://example.org/c",
-              "http://example.org/d": "http://example.org/e"
+              "@id": "http://example.org/k",
+              "http://example.org/l": "http://example.org/m",
+              "http://example.org/n": "http://example.org/o"
             }]
           </script>`);
 
         return actor.run(
-          { context: parseAction.context, handle: { input: parseAction.input }, handleMediaType: 'text/html' })
+          { context: parseAction.context, handle: { input: parseAction.input, baseIRI: parseAction.baseIRI },
+            handleMediaType: 'text/html' })
           .then(async (output) => expect(await arrayifyStream(output.handle.quads)).toEqualRdfQuadArray([
             quad("http://example.org/a", "http://example.org/b", "http://example.org/c", ""),
             quad("http://example.org/a", "http://example.org/d", "http://example.org/e", ""),
-            quad("http://example.org/a", "http://example.org/b", "http://example.org/c", ""),
-            quad("http://example.org/a", "http://example.org/d", "http://example.org/e", ""),
-            quad("http://example.org/a", "http://example.org/b", "http://example.org/c", ""),
-            quad("http://example.org/a", "http://example.org/d", "http://example.org/e", ""),
+            quad("http://example.org/f", "http://example.org/g", "http://example.org/h", ""),
+            quad("http://example.org/f", "http://example.org/i", "http://example.org/j", ""),
+            quad("http://example.org/k", "http://example.org/l", "http://example.org/m", ""),
+            quad("http://example.org/k", "http://example.org/n", "http://example.org/o", ""),
+          ]));
+      });
+
+      it('should run with real HTML input', () => {
+        parseAction.input = stringToStream(
+          `<!DOCTYPE html>
+           <html>
+            <body>
+                <h1>My First Heading</h1>
+                <p>My first paragraph.</p>
+                <script type="application/ld+json">
+                  [{
+                  "@id": "http://example.org/a",
+                  "http://example.org/b": "http://example.org/c",
+                  "http://example.org/d": "http://example.org/e"
+                  }]
+                </script>
+                <p>My second paragraph.</p>
+            </body>
+           </html>`);
+
+        return actor.run(
+          { context: parseAction.context, handle: { input: parseAction.input, baseIRI: parseAction.baseIRI },
+            handleMediaType: 'text/html' })
+          .then(async (output) => expect(await arrayifyStream(output.handle.quads)).toEqualRdfQuadArray([
+            quad('http://example.org/a', 'http://example.org/b', '"http://example.org/c"'),
+            quad('http://example.org/a', 'http://example.org/d', '"http://example.org/e"'),
           ]));
       });
 
