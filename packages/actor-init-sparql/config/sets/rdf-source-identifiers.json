@@ -16,7 +16,8 @@
       "@type": "ActorRdfSourceIdentifierHypermediaQpf",
       "carsihq:Actor/RdfSourceIdentifier/HypermediaQpf/mediatorHttp": {
         "@id": "config-sets:http.json#mediatorHttp"
-      }
+      },
+      "carsihq:Actor/RdfSourceIdentifier/HypermediaQpf/toContain": "next"
     },
     {
       "@id": "config-sets:rdf-source-identifiers.json#myActorRdfSourceIdentifierSparql",

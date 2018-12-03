@@ -27,13 +27,10 @@
       "@id": "config-sets:resolve-hypermedia.json#myHypermediaQpfResolver",
       "@type": "ActorRdfResolveHypermediaQpf"
     },
-<<<<<<< HEAD
     { 
       "@id": "config-sets:resolve-hypermedia.json#myHypermediaNextPageResolver",
       "@type": "ActorRdfResolveHypermediaNextPage"
     },
-=======
->>>>>>> 3ef2570da129d645714a8517a7a0588158314359
 
     {
       "@id": "config-sets:resolve-hypermedia.json#myQuadPatternHypermediaResolver",
@@ -71,10 +68,6 @@
       }
     },
 
-    {
-      "@id": "config-sets:resolve-hypermedia.json#myRdfMetadataPrimaryTopic",
-      "@type": "ActorRdfMetadataPrimaryTopic"
-    },
     {
       "@id": "config-sets:resolve-hypermedia.json#myRdfMetadataTriplePredicate",
       "@type": "ActorRdfMetadataTriplePredicate"
