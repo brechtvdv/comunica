@@ -21,51 +21,39 @@ export class ActorRdfParseHtmlScript extends ActorRdfParseFixedMediaTypes {
   public mediatorRdfParse: Mediator<Actor<IActionRootRdfParse, IActorTestRootRdfParse,
     IActorOutputRootRdfParse>, IActionRootRdfParse, IActorTestRootRdfParse, IActorOutputRootRdfParse>;
 
+  private readonly htmlparser: any;
+
   constructor(args: IActorRdfParseFixedMediaTypesArgs) {
     super(args);
+    this.htmlparser = require("htmlparser2");
   }
 
   public async runHandle(action: IActionRdfParse, mediaType: string, context: ActionContext):
     Promise<IActorRdfParseOutput> {
     const supportedTypes: string[] = Object.keys((await this.mediatorRdfParse
-        .mediate({
-            context,
-            mediaTypes: true,
-        })).mediaTypes);
+      .mediate({
+        context,
+        mediaTypes: true,
+      })).mediaTypes);
     supportedTypes.push("application/ld+json");
 
-    const htmlparser = require("htmlparser2");
-
     const quads = new Readable({objectMode: true});
-    const textStream = new Readable({objectMode: true});
-
-    let initialized = false;
+    let textStream: Readable;
+    let initialized: boolean = false;
     quads._read = async () => {
       if (!initialized) {
         initialized = true;
-        let rdfScriptTagFound: boolean = false;
         let mediaTypeFound: string;
-        let countScriptTexts = 0; // amount of script-texts that have been found for parsing
-
-        const parser = new htmlparser.Parser({
-          onclosetag: async (tagname: string) => {
-            if (rdfScriptTagFound) {
+        let countScriptTexts: number = 0; // amount of script-texts that have been found for parsing
+        let ended: boolean = false;
+        let closed: boolean = false; // after onclosetag is called, htmlparser can return an empty text in ontext
+        const parser = new this.htmlparser.Parser({
+          onclosetag: async () => {
+            closed = true;
+            if (mediaTypeFound) {
               textStream.push(null);
-            }
-          },
-          onopentag: (tagname: string, attribs: any) => {
-            if (tagname === "script" && supportedTypes.indexOf(attribs.type) > -1) {
-              rdfScriptTagFound = true;
-              mediaTypeFound = attribs.type;
-              countScriptTexts++;
-            } else {
-              rdfScriptTagFound = false;
-            }
-          },
-          ontext: async (text: string) => {
-            if (rdfScriptTagFound) {
-              textStream.push(text);
 
+              // Send text to parser
               const parseAction = {
                 context,
                 handle: {baseIRI: action.baseIRI, input: textStream},
@@ -76,18 +64,43 @@ export class ActorRdfParseHtmlScript extends ActorRdfParseFixedMediaTypes {
                 quads.push(chunk);
               });
               returned.quads.on('end', () => {
-                countScriptTexts--;
-                if (!countScriptTexts) {
+                // When the document has been read and this is the last one, end the stream
+                if (ended && --countScriptTexts === 0) {
                   quads.push(null);
                 }
               });
             }
-          }, decodeEntities: true
-        });
+          },
+          // This method gets called after running all onopentags, ontexts and onendtags
+          onend: () => {
+            // If all script texts are processed or none are found, end the stream
+            if (countScriptTexts === 0) {
+              quads.push(null);
+            } else {
+              ended = true;
+            }
+          },
+          onopentag: (tagname: string, attribs: any) => {
+            closed = false;
+            if (tagname === "script" && supportedTypes.indexOf(attribs.type) > -1) {
+              textStream = new Readable({objectMode: true});
+              mediaTypeFound = attribs.type;
+              countScriptTexts++;
+            } else {
+              mediaTypeFound = null; // the tag will not be processed in the ontext
+            }
+          },
+          // ontext runs synchronously after onopentag
+          ontext: (text: string) => {
+            if (!closed && mediaTypeFound) {
+              textStream.push(text);
+            }
+          }
+        },{ decodeEntities: true});
         action.input.pipe(parser);
       }
-    };
+    }
 
-    return {quads};
+    return { quads };
   }
 }

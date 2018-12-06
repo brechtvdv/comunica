@@ -1,3 +1,6 @@
+import {ActorRdfParseJsonLd} from "@comunica/actor-rdf-parse-jsonld";
+import {ActorRdfParseN3} from "@comunica/actor-rdf-parse-n3";
+import {ActorRdfParseRdfXml} from "@comunica/actor-rdf-parse-rdfxml";
 import {
   ActorRdfParseFixedMediaTypes,
   IActionRdfParse,
@@ -32,7 +35,7 @@ describe('ActorRdfParseHtml', () => {
       },
         name: 'jsonldParser',
       });
-    n3Parser = new ActorRdfParseJsonLd(
+    n3Parser = new ActorRdfParseN3(
       { bus, mediaTypes:
       {
         'application/n-quads': 0.7,
@@ -43,7 +46,7 @@ describe('ActorRdfParseHtml', () => {
       },
         name: 'n3Parser',
       });
-    rdfxmlParser = new ActorRdfParseJsonLd(
+    rdfxmlParser = new ActorRdfParseRdfXml(
       { name: 'rdfxmlParser', bus, mediaTypes: { 'application/rdf+xml': 1.0 } });
 
     mediator = {
@@ -142,8 +145,8 @@ describe('ActorRdfParseHtml', () => {
           handleMediaType: 'application/ld+json' })).rejects.toBeTruthy();
       });
 
-      it('should run', () => {
-        return actor.run({ context, handle: { input: parseAction.input, baseIRI: parseAction.baseIRI },
+      it('should run', async () => {
+        return actor.run({ context: parseAction.context, handle: { input: parseAction.input, baseIRI: parseAction.baseIRI },
           handleMediaType: 'text/html' })
           .then(async (output) => expect(await arrayifyStream(output.handle.quads)).toEqualRdfQuadArray([
             quad('http://example.org/a', 'http://example.org/b', '"http://example.org/c"'),
@@ -178,8 +181,8 @@ describe('ActorRdfParseHtml', () => {
       it('should run with one N-Quads script', () => {
         parseAction.input = stringToStream(
           `<script type="application/n-quads">
-            http://example.org/f http://example.org/g http://example.org/h "" .
-            http://example.org/f http://example.org/i http://example.org/j "" .
+            <http://example.org/f> <http://example.org/g> <http://example.org/h> .
+            <http://example.org/f> <http://example.org/i> <http://example.org/j> .
           </script>`);
 
         return actor.run(
@@ -224,15 +227,19 @@ describe('ActorRdfParseHtml', () => {
           `<script type="application/ld+json">
           [{
               "@id": "http://example.org/a",
-              "http://example.org/b": ""http://example.org/c"",
-              "http://example.org/d": "http://example.org/e"
+              "http://example.org/b": {
+                "@id": "http://example.org/c"
+              },
+              "http://example.org/d": {
+                "@id": "http://example.org/e"
+              }
           }]
           </script>
           <script type="text/plain">
           [{
-              "@id": "http://example.org/a",
-              "http://example.org/b": "http://example.org/c",
-              "http://example.org/d": "http://example.org/e"
+              "@id": "http://example.org/f",
+              "http://example.org/g": "http://example.org/h",
+              "http://example.org/i": "http://example.org/j"
           }]
           </script>`);
 
@@ -241,7 +248,7 @@ describe('ActorRdfParseHtml', () => {
             handleMediaType: 'text/html' })
           .then(async (output) => expect(await arrayifyStream(output.handle.quads)).toEqualRdfQuadArray([
             quad('http://example.org/a', 'http://example.org/b', 'http://example.org/c'),
-            quad('http://example.org/a', 'http://example.org/d', 'http://example.org/e'),
+            quad('http://example.org/a', 'http://example.org/d', 'http://example.org/e')
           ]));
       });
 
@@ -250,32 +257,41 @@ describe('ActorRdfParseHtml', () => {
           `<script type="application/ld+json">
           [{
               "@id": "http://example.org/a",
-              "http://example.org/b": "http://example.org/c",
-              "http://example.org/d": "http://example.org/e"
+              "http://example.org/b": {
+                "@id": "http://example.org/c"
+              },
+              "http://example.org/d": {
+                "@id": "http://example.org/e"
+              }
           }]
           </script>
           <script type="application/n-quads">
-            http://example.org/f http://example.org/g http://example.org/h "" .
-            http://example.org/f http://example.org/i http://example.org/j "" .
+            <http://example.org/f> <http://example.org/g> <http://example.org/h> .
+            <http://example.org/f> <http://example.org/i> <http://example.org/j> .
           </script>
           <script type="application/ld+json">
             [{
               "@id": "http://example.org/k",
-              "http://example.org/l": "http://example.org/m",
-              "http://example.org/n": "http://example.org/o"
+              "http://example.org/l": {
+                "@id": "http://example.org/m"
+              },
+              "http://example.org/n": {
+                "@id": "http://example.org/o"
+              }
             }]
-          </script>`);
+          </script>
+`);
 
         return actor.run(
           { context: parseAction.context, handle: { input: parseAction.input, baseIRI: parseAction.baseIRI },
             handleMediaType: 'text/html' })
           .then(async (output) => expect(await arrayifyStream(output.handle.quads)).toEqualRdfQuadArray([
-            quad("http://example.org/a", "http://example.org/b", "http://example.org/c", ""),
-            quad("http://example.org/a", "http://example.org/d", "http://example.org/e", ""),
             quad("http://example.org/f", "http://example.org/g", "http://example.org/h", ""),
             quad("http://example.org/f", "http://example.org/i", "http://example.org/j", ""),
+            quad("http://example.org/a", "http://example.org/b", "http://example.org/c", ""),
+            quad("http://example.org/a", "http://example.org/d", "http://example.org/e", ""),
             quad("http://example.org/k", "http://example.org/l", "http://example.org/m", ""),
-            quad("http://example.org/k", "http://example.org/n", "http://example.org/o", ""),
+            quad("http://example.org/k", "http://example.org/n", "http://example.org/o", "")
           ]));
       });
 
